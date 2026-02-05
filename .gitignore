@@ -1,0 +1,35 @@
+# Xcode
+build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcworkspace
+xcuserdata/
+*.xcodeproj/xcuserdata/
+*.playgrounds
+*.resolved
+
+# Generated Xcode files
+DerivedData/
+.swiftpm/
+.build/
+
+# Tuist
+Tuist/Cache/
+Tuist/.tuist-bin
+
+# OS
+.DS_Store
+.Spotlight-V100
+.Trashes
+._*
+
+# IDE
+.idea/
+*.iml
+*.swiftpm
+
+# Environment
+.env
+.env.local
