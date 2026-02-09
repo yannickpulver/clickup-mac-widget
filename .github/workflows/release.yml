@@ -87,29 +87,36 @@ jobs:
             -authenticationKeyID "$API_KEY_ID" \
             -authenticationKeyIssuerID "$API_KEY_ISSUER"
 
-      - name: Export
+      - name: Sign & export
         run: |
-          cat > /tmp/exportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>developer-id</string>
-              <key>teamID</key>
-              <string>${TEAM_ID}</string>
-          </dict>
-          </plist>
-          EOF
+          # Find Developer ID signing identity
+          IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk -F'"' '{print $2}')
+          echo "Signing with: $IDENTITY"
 
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/$APP_NAME.xcarchive" \
-            -exportOptionsPlist /tmp/exportOptions.plist \
-            -exportPath build \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath /tmp/AuthKey.p8 \
-            -authenticationKeyID "$API_KEY_ID" \
-            -authenticationKeyIssuerID "$API_KEY_ISSUER"
+          # Copy .app from archive (skip xcodebuild -exportArchive which needs cloud profiles)
+          mkdir -p build
+          cp -R "$RUNNER_TEMP/$APP_NAME.xcarchive/Products/Applications/$APP_NAME.app" "build/$APP_NAME.app"
+
+          # Re-sign inside-out with Developer ID cert + hardened runtime
+          codesign --force --options runtime --timestamp \
+            --sign "$IDENTITY" \
+            "build/$APP_NAME.app/Contents/Frameworks/Shared.framework"
+
+          APPEX=$(find "build/$APP_NAME.app" -name "*.appex" -print -quit)
+          if [ -n "$APPEX" ]; then
+            codesign --force --options runtime --timestamp \
+              --sign "$IDENTITY" \
+              --entitlements WidgetExtension/WidgetExtension.entitlements \
+              "$APPEX"
+          fi
+
+          codesign --force --options runtime --timestamp \
+            --sign "$IDENTITY" \
+            --entitlements ClickUpWidget/ClickUpWidget.entitlements \
+            "build/$APP_NAME.app"
+
+          # Verify
+          codesign --verify --deep --strict --verbose=2 "build/$APP_NAME.app"
 
       # ── Notarize ────────────────────────────────────────────────────
       - name: Notarize
