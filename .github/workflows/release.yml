@@ -27,12 +27,6 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
 
-      - name: Import code-signing certificates
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.SIGNING_CERTIFICATE_P12_DATA_MACOS }}
-          p12-password: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD_MACOS }}
-
       - name: Write App Store Connect API key
         run: echo '${{ secrets.APPSTORE_CONNECT_API_JSON }}' > fastlane/mac-api-key.json
 
