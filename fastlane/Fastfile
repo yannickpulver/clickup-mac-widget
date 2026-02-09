@@ -10,7 +10,6 @@ platform :macos do
 
   lane :deploy_dmg do
     setup_ci if ENV['CI']
-    match(type: "developer_id", platform: "macos")
     build
     notarize(
       package: "build/ClickUpWidget.app",
