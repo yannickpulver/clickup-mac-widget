@@ -137,6 +137,9 @@ jobs:
           brew install create-dmg || true
           create-dmg \
             --volname "ClickUp Widget" \
+            --icon-size 80 \
+            --app-drop-link 425 120 \
+            --icon "$APP_NAME.app" 175 120 \
             --no-internet-enable \
             "build/$APP_NAME.dmg" \
             "build/$APP_NAME.app" || test $? -eq 2
