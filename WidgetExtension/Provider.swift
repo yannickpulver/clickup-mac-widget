@@ -83,9 +83,9 @@ struct TaskTimelineProvider: TimelineProvider {
         let defaults = UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")
         defaults?.set("fetchTasks called at \(Date())", forKey: "debug_last_call")
 
-        // Try OAuth token first, then API key
-        let oauthToken = try? KeychainHelper.shared.get(key: "clickup_oauth_token")
-        let apiKeyToken = try? KeychainHelper.shared.get(key: "clickup_api_key")
+        // Try OAuth token first, then API key (flatMap flattens String?? from try?)
+        let oauthToken = (try? KeychainHelper.shared.get(key: "clickup_oauth_token")).flatMap { $0 }
+        let apiKeyToken = (try? KeychainHelper.shared.get(key: "clickup_api_key")).flatMap { $0 }
         let token: String? = oauthToken ?? apiKeyToken
 
         defaults?.set("oauth=\(oauthToken != nil), apiKey=\(apiKeyToken != nil)", forKey: "debug_token_status")

@@ -27,24 +27,12 @@ struct MarkTaskDoneIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        let oauthToken = try? KeychainHelper.shared.get(key: "clickup_oauth_token")
-        let apiKeyToken = try? KeychainHelper.shared.get(key: "clickup_api_key")
-        guard let token = oauthToken ?? apiKeyToken else { return .result() }
+        let token = (try? KeychainHelper.shared.get(key: "clickup_oauth_token")).flatMap { $0 }
+            ?? (try? KeychainHelper.shared.get(key: "clickup_api_key")).flatMap { $0 }
+        guard let token else { return .result() }
 
         try await ClickUpService.shared.updateTaskStatus(apiKey: token, taskId: taskId, status: "complete")
         WidgetCenter.shared.reloadAllTimelines()
-        return .result()
-    }
-}
-
-struct CreateTaskIntent: AppIntent {
-    static var title: LocalizedStringResource = "Create Task"
-    static var description = IntentDescription("Open app to create a new ClickUp task")
-
-    func perform() async throws -> some IntentResult {
-        if let url = URL(string: "clickupwidget://create-task") {
-            await NSWorkspace.shared.open(url)
-        }
         return .result()
     }
 }

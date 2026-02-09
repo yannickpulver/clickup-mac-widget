@@ -16,11 +16,10 @@ struct TaskWidgetView: View {
                 Text("ClickUp")
                     .font(.system(size: 11, weight: .semibold))
                 Spacer()
-                Button(intent: CreateTaskIntent()) {
+                Link(destination: URL(string: "clickupwidget://create-task")!) {
                     Image(systemName: "plus")
                         .font(.system(size: 10))
                 }
-                .buttonStyle(.plain)
                 Button(intent: RefreshIntent()) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 10))
