@@ -1,11 +1,16 @@
 platform :macos do
   lane :build do
+    # Write API key .p8 for xcodebuild auth
+    api_json = JSON.parse(File.read("../fastlane/mac-api-key.json"))
+    p8_path = File.expand_path("../fastlane/AuthKey.p8")
+    File.write(p8_path, api_json["key"])
+
     build_mac_app(
       workspace: "ClickUpWidget.xcworkspace",
       scheme: "ClickUpWidget",
       export_method: "developer-id",
       output_directory: "build",
-      xcargs: "-allowProvisioningUpdates CODE_SIGN_STYLE=Automatic"
+      xcargs: "-allowProvisioningUpdates CODE_SIGN_STYLE=Automatic -authenticationKeyPath '#{p8_path}' -authenticationKeyID '#{api_json["key_id"]}' -authenticationKeyIssuerID '#{api_json["issuer_id"]}'"
     )
   end
 

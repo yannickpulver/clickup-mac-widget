@@ -39,3 +39,4 @@ fastlane/.env.default
 fastlane/report.xml
 fastlane/README.md
 fastlane/mac-api-key.json
+fastlane/AuthKey.p8
