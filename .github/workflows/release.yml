@@ -7,10 +7,19 @@ on:
 
 env:
   APP_NAME: ClickUpWidget
+  SCHEME: ClickUpWidget
+  TEAM_ID: '337L47P9N7'
+
+# Required secrets:
+#   SIGNING_CERTIFICATE_P12_DATA_MACOS  – base64-encoded .p12 with "Developer ID Application" cert + private key
+#   SIGNING_CERTIFICATE_PASSWORD_MACOS  – password for the .p12
+#   APPSTORE_CONNECT_API_JSON           – JSON with keys: key_id, issuer_id, key (App Store Connect API key)
 
 jobs:
-  build-mac:
+  build-and-release:
     runs-on: macos-15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -21,49 +30,116 @@ jobs:
       - name: Generate Xcode project
         run: tuist generate --no-open
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
+      # ── Keychain & certificate ──────────────────────────────────────
+      - name: Set up keychain
+        env:
+          P12_BASE64: ${{ secrets.SIGNING_CERTIFICATE_P12_DATA_MACOS }}
+          P12_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD_MACOS }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
 
-      - name: Import code-signing certificates
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.SIGNING_CERTIFICATE_P12_DATA_MACOS }}
-          p12-password: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD_MACOS }}
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-      - name: Write App Store Connect API key
-        run: echo '${{ secrets.APPSTORE_CONNECT_API_JSON }}' > fastlane/mac-api-key.json
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
-      - name: Build, notarize & create DMG
-        run: bundle exec fastlane macos deploy_dmg
+          # Verify Developer ID cert is present
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
-      - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dmg
-          path: "build/${{ env.APP_NAME }}.dmg"
+          rm "$RUNNER_TEMP/cert.p12"
 
-  release-mac:
-    runs-on: macos-15
-    needs: build-mac
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
+      # ── App Store Connect API key ───────────────────────────────────
+      - name: Prepare API key
+        env:
+          API_KEY_JSON: ${{ secrets.APPSTORE_CONNECT_API_JSON }}
+        run: |
+          echo "$API_KEY_JSON" > /tmp/api-key.json
+          python3 -c "
+          import json, os
+          d = json.load(open('/tmp/api-key.json'))
+          open('/tmp/AuthKey.p8', 'w').write(d['key'])
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f'API_KEY_ID={d[\"key_id\"]}\n')
+              f.write(f'API_KEY_ISSUER={d[\"issuer_id\"]}\n')
+          "
 
-      - name: Download DMG artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dmg
+      # ── Build ───────────────────────────────────────────────────────
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -workspace "$SCHEME.xcworkspace" \
+            -scheme "$SCHEME" \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$RUNNER_TEMP/$APP_NAME.xcarchive" \
+            CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath /tmp/AuthKey.p8 \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_KEY_ISSUER"
+
+      - name: Export
+        run: |
+          cat > /tmp/exportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>developer-id</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/$APP_NAME.xcarchive" \
+            -exportOptionsPlist /tmp/exportOptions.plist \
+            -exportPath build \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath /tmp/AuthKey.p8 \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_KEY_ISSUER"
+
+      # ── Notarize ────────────────────────────────────────────────────
+      - name: Notarize
+        run: |
+          ditto -c -k --keepParent "build/$APP_NAME.app" "$RUNNER_TEMP/$APP_NAME.zip"
+
+          xcrun notarytool submit "$RUNNER_TEMP/$APP_NAME.zip" \
+            --key /tmp/AuthKey.p8 \
+            --key-id "$API_KEY_ID" \
+            --issuer "$API_KEY_ISSUER" \
+            --wait
+
+          xcrun stapler staple "build/$APP_NAME.app"
+
+      # ── Package & Release ───────────────────────────────────────────
+      - name: Create DMG
+        run: |
+          brew install create-dmg || true
+          create-dmg \
+            --volname "ClickUp Widget" \
+            --no-internet-enable \
+            "build/$APP_NAME.dmg" \
+            "build/$APP_NAME.app" || test $? -eq 2
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
+          TAG="${GITHUB_REF#refs/tags/}"
           gh release create "$TAG" \
-            "${{ env.APP_NAME }}.dmg" \
+            "build/$APP_NAME.dmg" \
             --title "$TAG" \
             --generate-notes
