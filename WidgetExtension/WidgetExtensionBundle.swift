@@ -40,11 +40,11 @@ struct MarkTaskDoneIntent: AppIntent {
 struct CreateTaskIntent: AppIntent {
     static var title: LocalizedStringResource = "Create Task"
     static var description = IntentDescription("Open app to create a new ClickUp task")
-    static var openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
-        let defaults = UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")
-        defaults?.set(true, forKey: "pending_create_task")
+        if let url = URL(string: "clickupwidget://create-task") {
+            await NSWorkspace.shared.open(url)
+        }
         return .result()
     }
 }

@@ -6,7 +6,6 @@ struct ClickUpWidgetApp: App {
     @State private var oauthError: String?
     @State private var showOAuthError = false
     @State private var showCreateTask = false
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -19,11 +18,6 @@ struct ClickUpWidgetApp: App {
                     Button("OK") { }
                 } message: {
                     Text(oauthError ?? "Unknown error")
-                }
-                .onChange(of: scenePhase) { _, phase in
-                    if phase == .active {
-                        checkPendingCreateTask()
-                    }
                 }
         }
         .handlesExternalEvents(matching: ["*"])
@@ -63,14 +57,6 @@ struct ClickUpWidgetApp: App {
                 oauthError = error.localizedDescription
                 showOAuthError = true
             }
-        }
-    }
-
-    private func checkPendingCreateTask() {
-        let defaults = UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")
-        if defaults?.bool(forKey: "pending_create_task") == true {
-            defaults?.removeObject(forKey: "pending_create_task")
-            showCreateTask = true
         }
     }
 }
