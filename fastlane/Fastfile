@@ -4,7 +4,8 @@ platform :macos do
       workspace: "ClickUpWidget.xcworkspace",
       scheme: "ClickUpWidget",
       export_method: "developer-id",
-      output_directory: "build"
+      output_directory: "build",
+      xcargs: "-allowProvisioningUpdates CODE_SIGN_STYLE=Automatic"
     )
   end
 
