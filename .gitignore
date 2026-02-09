@@ -33,3 +33,9 @@ Tuist/.tuist-bin
 # Environment
 .env
 .env.local
+
+# Fastlane
+fastlane/.env.default
+fastlane/report.xml
+fastlane/README.md
+fastlane/mac-api-key.json

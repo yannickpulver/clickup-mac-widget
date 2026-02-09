@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import AppIntents
+import Shared
 
 struct RefreshIntent: AppIntent {
     static var title: LocalizedStringResource = "Refresh Tasks"
@@ -8,6 +9,42 @@ struct RefreshIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         WidgetCenter.shared.reloadAllTimelines()
+        return .result()
+    }
+}
+
+struct MarkTaskDoneIntent: AppIntent {
+    static var title: LocalizedStringResource = "Mark Task Done"
+    static var description = IntentDescription("Mark a ClickUp task as complete")
+
+    @Parameter(title: "Task ID")
+    var taskId: String
+
+    init() {}
+
+    init(taskId: String) {
+        self.taskId = taskId
+    }
+
+    func perform() async throws -> some IntentResult {
+        let oauthToken = try? KeychainHelper.shared.get(key: "clickup_oauth_token")
+        let apiKeyToken = try? KeychainHelper.shared.get(key: "clickup_api_key")
+        guard let token = oauthToken ?? apiKeyToken else { return .result() }
+
+        try await ClickUpService.shared.updateTaskStatus(apiKey: token, taskId: taskId, status: "complete")
+        WidgetCenter.shared.reloadAllTimelines()
+        return .result()
+    }
+}
+
+struct CreateTaskIntent: AppIntent {
+    static var title: LocalizedStringResource = "Create Task"
+    static var description = IntentDescription("Open app to create a new ClickUp task")
+    static var openAppWhenRun: Bool = true
+
+    func perform() async throws -> some IntentResult {
+        let defaults = UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")
+        defaults?.set(true, forKey: "pending_create_task")
         return .result()
     }
 }

@@ -1,0 +1,2 @@
+app_identifier("com.yannickpulver.clickupwidget")
+team_id ENV["TEAM_ID"]

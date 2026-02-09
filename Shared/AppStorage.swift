@@ -3,7 +3,7 @@ import Foundation
 public final class SharedConfig {
     public static let shared = SharedConfig()
 
-    private let appGroupIdentifier = "group.com.clickup.widget"
+    private let appGroupIdentifier = "group.com.yannickpulver.clickupwidget"
     private let configFileName = "widget_config.json"
 
     private var containerURL: URL? {
@@ -19,19 +19,35 @@ public final class SharedConfig {
     public struct Config: Codable {
         public var teamId: String?
         public var userId: String?
+        public var defaultListId: String?
+        public var defaultListName: String?
 
-        public init(teamId: String? = nil, userId: String? = nil) {
+        public init(teamId: String? = nil, userId: String? = nil, defaultListId: String? = nil, defaultListName: String? = nil) {
             self.teamId = teamId
             self.userId = userId
+            self.defaultListId = defaultListId
+            self.defaultListName = defaultListName
         }
     }
 
     public func save(teamId: String, userId: String) {
+        var config = load() ?? Config()
+        config.teamId = teamId
+        config.userId = userId
+        saveConfig(config)
+    }
+
+    public func saveDefaultList(listId: String, listName: String) {
+        var config = load() ?? Config()
+        config.defaultListId = listId
+        config.defaultListName = listName
+        saveConfig(config)
+    }
+
+    private func saveConfig(_ config: Config) {
         guard let url = configFileURL else { return }
-        let config = Config(teamId: teamId, userId: userId)
         if let data = try? JSONEncoder().encode(config) {
             try? data.write(to: url, options: .atomic)
-            // Remove quarantine attribute so widget extension can read it
             removeQuarantine(from: url)
         }
     }
@@ -74,7 +90,7 @@ public final class SharedConfig {
 final class AppStorage {
     static let shared = AppStorage()
 
-    private let appGroupIdentifier = "group.com.clickup.widget"
+    private let appGroupIdentifier = "group.com.yannickpulver.clickupwidget"
     private let defaults: UserDefaults
 
     private enum Keys {

@@ -7,7 +7,7 @@ let project = Project(
             name: "ClickUpWidget",
             destinations: .macOS,
             product: .app,
-            bundleId: "com.clickup.widget",
+            bundleId: "com.yannickpulver.clickupwidget",
             deploymentTargets: .macOS("14.0"),
             infoPlist: .extendingDefault(with: [
                 "NSPrincipalClass": "",
@@ -30,6 +30,7 @@ let project = Project(
                     "DEVELOPMENT_TEAM": "337L47P9N7",
                     "CODE_SIGN_IDENTITY": "Apple Development",
                     "PROVISIONING_PROFILE_SPECIFIER": "",
+                    "ENABLE_HARDENED_RUNTIME": "YES",
                 ]
             )
         ),
@@ -37,7 +38,7 @@ let project = Project(
             name: "WidgetExtension",
             destinations: .macOS,
             product: .extensionKitExtension,
-            bundleId: "com.clickup.widget.WidgetExtension",
+            bundleId: "com.yannickpulver.clickupwidget.WidgetExtension",
             deploymentTargets: .macOS("14.0"),
             infoPlist: .extendingDefault(with: [
                 "NSExtension": [
@@ -54,6 +55,7 @@ let project = Project(
                 base: [
                     "DEVELOPMENT_TEAM": "337L47P9N7",
                     "CODE_SIGN_IDENTITY": "Apple Development",
+                    "ENABLE_HARDENED_RUNTIME": "YES",
                 ]
             )
         ),
@@ -61,7 +63,7 @@ let project = Project(
             name: "Shared",
             destinations: .macOS,
             product: .framework,
-            bundleId: "com.clickup.widget.Shared",
+            bundleId: "com.yannickpulver.clickupwidget.Shared",
             deploymentTargets: .macOS("14.0"),
             sources: ["Shared/**"],
             resources: [],

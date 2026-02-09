@@ -1,0 +1,5 @@
+git_url ENV["CERT_REPO"]
+storage_mode("git")
+type("developer_id")
+app_identifier(["com.yannickpulver.clickupwidget", "com.yannickpulver.clickupwidget.WidgetExtension"])
+team_id ENV["TEAM_ID"]

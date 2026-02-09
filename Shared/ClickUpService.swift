@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.clickup.widget", category: "Service")
+private let logger = Logger(subsystem: "com.yannickpulver.clickupwidget", category: "Service")
 
 // MARK: - Errors
 
@@ -46,7 +46,7 @@ public actor ClickUpService {
     public static let shared = ClickUpService()
 
     private let baseURL = "https://api.clickup.com/api/v2"
-    private let timeout: TimeInterval = 5.0
+    private let timeout: TimeInterval = 15.0
     private let minRequestInterval: TimeInterval = 0.6 // 100 req/min
 
     private var lastRequestTime: Date = .distantPast
@@ -116,14 +116,99 @@ public actor ClickUpService {
         }
     }
 
+    public func updateTaskStatus(apiKey: String, taskId: String, status: String) async throws {
+        let body = try JSONEncoder().encode(["status": status])
+        try await requestNoResponse(
+            endpoint: "/task/\(taskId)",
+            apiKey: apiKey,
+            httpMethod: "PUT",
+            body: body
+        )
+    }
+
+    public func createTask(apiKey: String, listId: String, name: String, assigneeIds: [Int] = []) async throws {
+        let payload = CreateTaskPayload(name: name, assignees: assigneeIds)
+        let body = try JSONEncoder().encode(payload)
+        try await requestNoResponse(
+            endpoint: "/list/\(listId)/task",
+            apiKey: apiKey,
+            httpMethod: "POST",
+            body: body
+        )
+    }
+
+    public func getSpaces(apiKey: String, teamId: String) async throws -> [ClickUpSpace] {
+        let response = try await request(
+            endpoint: "/team/\(teamId)/space",
+            apiKey: apiKey,
+            responseType: ClickUpSpacesResponse.self
+        )
+        return response.spaces
+    }
+
+    public func getFolderlessLists(apiKey: String, spaceId: String) async throws -> [ClickUpList] {
+        let response = try await request(
+            endpoint: "/space/\(spaceId)/list",
+            apiKey: apiKey,
+            responseType: ClickUpListsResponse.self
+        )
+        return response.lists
+    }
+
+    public func getFolders(apiKey: String, spaceId: String) async throws -> [ClickUpFolder] {
+        let response = try await request(
+            endpoint: "/space/\(spaceId)/folder",
+            apiKey: apiKey,
+            responseType: ClickUpFoldersResponse.self
+        )
+        return response.folders
+    }
+
     // MARK: - Private Methods
 
     private func request<T: Decodable>(
         endpoint: String,
         apiKey: String,
         queryParams: [String] = [],
+        httpMethod: String = "GET",
+        body: Data? = nil,
         responseType: T.Type
     ) async throws -> T {
+        let (data, _) = try await executeRequest(endpoint: endpoint, apiKey: apiKey, queryParams: queryParams, httpMethod: httpMethod, body: body)
+
+        // Decode response
+        do {
+            let decoder = JSONDecoder()
+            return try decoder.decode(T.self, from: data)
+        } catch let DecodingError.keyNotFound(key, context) {
+            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing key: \(key.stringValue) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"]))
+        } catch let DecodingError.typeMismatch(type, context) {
+            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Type mismatch: expected \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"]))
+        } catch let DecodingError.valueNotFound(type, context) {
+            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Value not found: \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"]))
+        } catch let DecodingError.dataCorrupted(context) {
+            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Data corrupted at \(context.codingPath.map { $0.stringValue }.joined(separator: ".")): \(context.debugDescription)"]))
+        } catch {
+            throw ClickUpServiceError.decodingError(error)
+        }
+    }
+
+    private func requestNoResponse(
+        endpoint: String,
+        apiKey: String,
+        httpMethod: String = "PUT",
+        body: Data? = nil
+    ) async throws {
+        _ = try await executeRequest(endpoint: endpoint, apiKey: apiKey, httpMethod: httpMethod, body: body)
+    }
+
+    private func executeRequest(
+        endpoint: String,
+        apiKey: String,
+        queryParams: [String] = [],
+        httpMethod: String = "GET",
+        body: Data? = nil
+    ) async throws -> (Data, HTTPURLResponse) {
         // Rate limiting
         try await enforceRateLimit()
 
@@ -139,10 +224,11 @@ public actor ClickUpService {
 
         // Create request
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = httpMethod
         request.setValue(apiKey, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = timeout
+        request.httpBody = body
 
         // Execute request
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -174,21 +260,7 @@ public actor ClickUpService {
             throw ClickUpServiceError.invalidResponse
         }
 
-        // Decode response
-        do {
-            let decoder = JSONDecoder()
-            return try decoder.decode(T.self, from: data)
-        } catch let DecodingError.keyNotFound(key, context) {
-            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing key: \(key.stringValue) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"]))
-        } catch let DecodingError.typeMismatch(type, context) {
-            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Type mismatch: expected \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"]))
-        } catch let DecodingError.valueNotFound(type, context) {
-            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Value not found: \(type) at \(context.codingPath.map { $0.stringValue }.joined(separator: "."))"]))
-        } catch let DecodingError.dataCorrupted(context) {
-            throw ClickUpServiceError.decodingError(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Data corrupted at \(context.codingPath.map { $0.stringValue }.joined(separator: ".")): \(context.debugDescription)"]))
-        } catch {
-            throw ClickUpServiceError.decodingError(error)
-        }
+        return (data, httpResponse)
     }
 
     private func enforceRateLimit() async throws {

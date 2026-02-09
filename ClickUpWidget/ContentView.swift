@@ -1,17 +1,29 @@
 import SwiftUI
 import Shared
+import WidgetKit
 
 extension Notification.Name {
     static let oauthCompleted = Notification.Name("oauthCompleted")
 }
 
 struct ContentView: View {
+    @Binding var showCreateTask: Bool
+
     @State private var clientId: String = Secrets.clickUpClientId
     @State private var clientSecret: String = Secrets.clickUpClientSecret
     @State private var isSignedIn: Bool = false
     @State private var hasCredentials: Bool = Secrets.hasCredentials
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
+
+    // List picker state
+    @State private var availableLists: [ClickUpList] = []
+    @State private var selectedList: ClickUpList?
+    @State private var loadingLists = false
+
+    // Create task state
+    @State private var newTaskName: String = ""
+    @State private var creatingTask = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -34,7 +46,7 @@ struct ContentView: View {
             Spacer()
         }
         .padding(32)
-        .frame(minWidth: 340, minHeight: 320)
+        .frame(minWidth: 340, minHeight: 420)
         .onAppear {
             checkAuthState()
         }
@@ -104,6 +116,14 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
+            // Default list picker
+            listPickerSection
+
+            // Create task (shown when triggered from widget)
+            if showCreateTask {
+                createTaskSection
+            }
+
             Button(action: signOut) {
                 Text("Sign Out")
             }
@@ -115,7 +135,76 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
         }
+        .onAppear {
+            if availableLists.isEmpty {
+                loadSpacesAndLists()
+            }
+        }
     }
+
+    private var listPickerSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Default List")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            if loadingLists {
+                ProgressView()
+                    .scaleEffect(0.8)
+            } else if availableLists.isEmpty {
+                Button("Load Lists") { loadSpacesAndLists() }
+                    .font(.caption)
+            } else {
+                Picker("List", selection: $selectedList) {
+                    Text("None").tag(nil as ClickUpList?)
+                    ForEach(availableLists) { list in
+                        Text(list.name).tag(list as ClickUpList?)
+                    }
+                }
+                .onChange(of: selectedList) { _, list in
+                    if let list {
+                        SharedConfig.shared.saveDefaultList(listId: list.id, listName: list.name)
+                    }
+                }
+            }
+        }
+    }
+
+    private var createTaskSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+            Text("New Task")
+                .font(.headline)
+
+            TextField("Task name", text: $newTaskName)
+                .textFieldStyle(.roundedBorder)
+
+            HStack {
+                Button("Create") { createTask() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(newTaskName.isEmpty || selectedList == nil || creatingTask)
+
+                Button("Cancel") {
+                    newTaskName = ""
+                    showCreateTask = false
+                }
+                .buttonStyle(.bordered)
+
+                if creatingTask {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+            }
+
+            if selectedList == nil {
+                Text("Select a default list above first")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+        }
+    }
+
+    // MARK: - Actions
 
     private func checkAuthState() {
         hasCredentials = Secrets.hasCredentials
@@ -157,8 +246,88 @@ struct ContentView: View {
             showAlert = true
         }
     }
+
+    private func loadSpacesAndLists() {
+        guard let token = ClickUpAPI.shared.currentAuthToken else { return }
+        loadingLists = true
+
+        Task {
+            do {
+                let teams = try await ClickUpService.shared.getTeams(apiKey: token)
+                guard let team = teams.first else {
+                    await MainActor.run {
+                        loadingLists = false
+                        alertMessage = "No teams found"
+                        showAlert = true
+                    }
+                    return
+                }
+
+                let spaces = try await ClickUpService.shared.getSpaces(apiKey: token, teamId: team.id)
+                var allLists: [ClickUpList] = []
+
+                for space in spaces {
+                    let folderless = try await ClickUpService.shared.getFolderlessLists(apiKey: token, spaceId: space.id)
+                    allLists.append(contentsOf: folderless)
+
+                    let folders = try await ClickUpService.shared.getFolders(apiKey: token, spaceId: space.id)
+                    for folder in folders {
+                        allLists.append(contentsOf: folder.lists)
+                    }
+                }
+
+                await MainActor.run {
+                    availableLists = allLists
+                    // Restore saved default
+                    if let config = SharedConfig.shared.load(),
+                       let savedId = config.defaultListId {
+                        selectedList = allLists.first { $0.id == savedId }
+                    }
+                    loadingLists = false
+                }
+            } catch {
+                await MainActor.run {
+                    loadingLists = false
+                    alertMessage = "Failed to load lists: \(error.localizedDescription)"
+                    showAlert = true
+                }
+            }
+        }
+    }
+
+    private func createTask() {
+        guard let list = selectedList, !newTaskName.isEmpty,
+              let token = ClickUpAPI.shared.currentAuthToken else { return }
+        creatingTask = true
+
+        Task {
+            do {
+                // Get user ID for assignment
+                let user = try await ClickUpService.shared.getUser(apiKey: token)
+                try await ClickUpService.shared.createTask(
+                    apiKey: token,
+                    listId: list.id,
+                    name: newTaskName,
+                    assigneeIds: [user.id]
+                )
+
+                await MainActor.run {
+                    newTaskName = ""
+                    creatingTask = false
+                    showCreateTask = false
+                    WidgetCenter.shared.reloadAllTimelines()
+                }
+            } catch {
+                await MainActor.run {
+                    creatingTask = false
+                    alertMessage = "Failed to create task: \(error.localizedDescription)"
+                    showAlert = true
+                }
+            }
+        }
+    }
 }
 
 #Preview {
-    ContentView()
+    ContentView(showCreateTask: .constant(false))
 }

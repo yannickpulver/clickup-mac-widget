@@ -16,6 +16,11 @@ struct TaskWidgetView: View {
                 Text("ClickUp")
                     .font(.system(size: 11, weight: .semibold))
                 Spacer()
+                Button(intent: CreateTaskIntent()) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10))
+                }
+                .buttonStyle(.plain)
                 Button(intent: RefreshIntent()) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 10))
@@ -40,30 +45,35 @@ struct TaskWidgetView: View {
     private var tasksList: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(entry.tasks.prefix(6)) { task in
-                Link(destination: task.url) {
-                    taskRow(task)
-                }
+                taskRow(task)
             }
         }
     }
 
     private func taskRow(_ task: TaskItem) -> some View {
         HStack(spacing: 4) {
-            Circle()
-                .fill(task.priorityColor)
-                .frame(width: 6, height: 6)
-
-            Text(task.name)
-                .font(.system(size: 11))
-                .lineLimit(1)
-                .foregroundColor(.primary)
-
-            Spacer(minLength: 2)
-
-            if let dueDate = task.dueDate {
-                Text(formatDate(dueDate))
+            Button(intent: MarkTaskDoneIntent(taskId: task.id)) {
+                Image(systemName: "circle")
                     .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(task.priorityColor)
+            }
+            .buttonStyle(.plain)
+
+            Link(destination: task.url) {
+                HStack(spacing: 4) {
+                    Text(task.name)
+                        .font(.system(size: 11))
+                        .lineLimit(1)
+                        .foregroundColor(.primary)
+
+                    Spacer(minLength: 2)
+
+                    if let dueDate = task.dueDate {
+                        Text(formatDate(dueDate))
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
         .padding(.vertical, 2)

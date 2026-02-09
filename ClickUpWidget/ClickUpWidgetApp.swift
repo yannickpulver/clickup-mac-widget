@@ -5,12 +5,14 @@ import Shared
 struct ClickUpWidgetApp: App {
     @State private var oauthError: String?
     @State private var showOAuthError = false
+    @State private var showCreateTask = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(showCreateTask: $showCreateTask)
                 .onOpenURL { url in
-                    handleOAuthCallback(url)
+                    handleURL(url)
                 }
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
                 .alert("OAuth Error", isPresented: $showOAuthError) {
@@ -18,18 +20,27 @@ struct ClickUpWidgetApp: App {
                 } message: {
                     Text(oauthError ?? "Unknown error")
                 }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active {
+                        checkPendingCreateTask()
+                    }
+                }
         }
         .handlesExternalEvents(matching: ["*"])
     }
 
-    private func handleOAuthCallback(_ url: URL) {
-        // Only handle OAuth callbacks (clickupwidget:// scheme)
+    private func handleURL(_ url: URL) {
         guard url.scheme == "clickupwidget" else {
-            // Not an OAuth callback, let system handle it (e.g., open in browser)
             NSWorkspace.shared.open(url)
             return
         }
 
+        if url.host == "create-task" {
+            showCreateTask = true
+            return
+        }
+
+        // OAuth callback
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
               let queryItems = components.queryItems else {
             oauthError = "Invalid callback URL"
@@ -52,6 +63,14 @@ struct ClickUpWidgetApp: App {
                 oauthError = error.localizedDescription
                 showOAuthError = true
             }
+        }
+    }
+
+    private func checkPendingCreateTask() {
+        let defaults = UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")
+        if defaults?.bool(forKey: "pending_create_task") == true {
+            defaults?.removeObject(forKey: "pending_create_task")
+            showCreateTask = true
         }
     }
 }

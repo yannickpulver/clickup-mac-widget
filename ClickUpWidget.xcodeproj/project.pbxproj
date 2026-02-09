@@ -411,6 +411,7 @@
 				CODE_SIGN_ENTITLEMENTS = WidgetExtension/WidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				DEVELOPMENT_TEAM = 337L47P9N7;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "Derived/InfoPlists/WidgetExtension-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -418,7 +419,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.clickup.widget.WidgetExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannickpulver.clickupwidget.WidgetExtension;
 				PRODUCT_NAME = WidgetExtension;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -446,7 +447,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.clickup.widget.Shared;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannickpulver.clickupwidget.Shared;
 				PRODUCT_NAME = Shared;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -481,7 +482,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.clickup.widget.Shared;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannickpulver.clickupwidget.Shared;
 				PRODUCT_NAME = Shared;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -502,6 +503,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 337L47P9N7;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "Derived/InfoPlists/ClickUpWidget-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -509,7 +511,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.clickup.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannickpulver.clickupwidget;
 				PRODUCT_NAME = ClickUpWidget;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -529,6 +531,7 @@
 				CODE_SIGN_ENTITLEMENTS = WidgetExtension/WidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				DEVELOPMENT_TEAM = 337L47P9N7;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "Derived/InfoPlists/WidgetExtension-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -536,7 +539,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.clickup.widget.WidgetExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannickpulver.clickupwidget.WidgetExtension;
 				PRODUCT_NAME = WidgetExtension;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
@@ -611,6 +614,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 337L47P9N7;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "Derived/InfoPlists/ClickUpWidget-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -618,7 +622,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.clickup.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yannickpulver.clickupwidget;
 				PRODUCT_NAME = ClickUpWidget;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;

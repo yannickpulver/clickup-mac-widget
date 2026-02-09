@@ -205,6 +205,46 @@ public struct ClickUpAssignee: Codable {
     }
 }
 
+// MARK: - Space, Folder, List Models
+
+public struct ClickUpSpace: Codable, Identifiable {
+    public let id: String
+    public let name: String
+}
+
+public struct ClickUpSpacesResponse: Codable {
+    public let spaces: [ClickUpSpace]
+}
+
+public struct ClickUpList: Codable, Identifiable, Hashable {
+    public let id: String
+    public let name: String
+}
+
+public struct ClickUpListsResponse: Codable {
+    public let lists: [ClickUpList]
+}
+
+public struct ClickUpFolder: Codable, Identifiable {
+    public let id: String
+    public let name: String
+    public let lists: [ClickUpList]
+}
+
+public struct ClickUpFoldersResponse: Codable {
+    public let folders: [ClickUpFolder]
+}
+
+public struct CreateTaskPayload: Encodable {
+    public let name: String
+    public let assignees: [Int]
+
+    public init(name: String, assignees: [Int] = []) {
+        self.name = name
+        self.assignees = assignees
+    }
+}
+
 // MARK: - API Response Wrappers
 
 public struct ClickUpUserResponse: Codable {

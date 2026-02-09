@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.clickup.widget</string>
+		<string>group.com.yannickpulver.clickupwidget</string>
 	</array>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
@@ -14,11 +14,11 @@
 	<true/>
 	<key>com.apple.security.keychain.access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)group.com.clickup.widget</string>
+		<string>$(AppIdentifierPrefix)group.com.yannickpulver.clickupwidget</string>
 	</array>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)group.com.clickup.widget</string>
+		<string>$(AppIdentifierPrefix)group.com.yannickpulver.clickupwidget</string>
 	</array>
 </dict>
 </plist>

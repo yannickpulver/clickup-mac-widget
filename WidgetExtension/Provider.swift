@@ -3,7 +3,7 @@ import SwiftUI
 import Shared
 import os.log
 
-private let logger = Logger(subsystem: "com.clickup.widget", category: "Provider")
+private let logger = Logger(subsystem: "com.yannickpulver.clickupwidget", category: "Provider")
 
 struct TaskEntry: TimelineEntry {
     let date: Date
@@ -15,8 +15,8 @@ struct TaskEntry: TimelineEntry {
 typealias TaskItem = ClickUpTask
 
 struct TaskTimelineProvider: TimelineProvider {
-    @AppStorage("clickup_cached_tasks", store: UserDefaults(suiteName: "group.com.clickup.widget")) var cachedTasksJSON: String?
-    @AppStorage("clickup_last_updated", store: UserDefaults(suiteName: "group.com.clickup.widget")) var lastUpdatedTimestamp: TimeInterval = 0
+    @AppStorage("clickup_cached_tasks", store: UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")) var cachedTasksJSON: String?
+    @AppStorage("clickup_last_updated", store: UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")) var lastUpdatedTimestamp: TimeInterval = 0
 
     func placeholder(in context: Context) -> TaskEntry {
         TaskEntry(
@@ -80,7 +80,7 @@ struct TaskTimelineProvider: TimelineProvider {
     }
 
     private func fetchTasks(completion: @escaping (Result<[TaskItem], Error>) -> Void) {
-        let defaults = UserDefaults(suiteName: "group.com.clickup.widget")
+        let defaults = UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")
         defaults?.set("fetchTasks called at \(Date())", forKey: "debug_last_call")
 
         // Try OAuth token first, then API key

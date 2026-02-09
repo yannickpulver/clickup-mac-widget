@@ -4,8 +4,8 @@ import Security
 public final class KeychainHelper {
     public static let shared = KeychainHelper()
 
-    private let service = "group.com.clickup.widget"
-    private let accessGroup = "337L47P9N7.group.com.clickup.widget"
+    private let service = "group.com.yannickpulver.clickupwidget"
+    private let accessGroup = "337L47P9N7.group.com.yannickpulver.clickupwidget"
 
     private init() {}
 

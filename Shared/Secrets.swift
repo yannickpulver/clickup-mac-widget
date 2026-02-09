@@ -1,7 +1,7 @@
 import Foundation
 
 public enum Secrets {
-    private static let defaults = UserDefaults(suiteName: "group.com.clickup.widget")
+    private static let defaults = UserDefaults(suiteName: "group.com.yannickpulver.clickupwidget")
 
     public static var clickUpClientId: String {
         get { defaults?.string(forKey: "clickup_client_id") ?? "" }
